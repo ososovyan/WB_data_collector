@@ -37,18 +37,17 @@
 ```mermaid
 graph TD
     %% Источник данных
-    WB[(World Bank API)] --> |Python ELT| PG[Raw_layerl]
+    WB[(World Bank API)] --> |Python ELT| RL[Raw_layerl]
 
     %% Внутренняя логика БД
     subgraph PostgreSQL_Database
         direction TB
-        PG --> TR[Trigger Functions]
-        TR --> RAW[Raw Historical Data]
+        RL --> |Trigger Functions| NL[Normalized_layerl]
         
-        RAW --> |Window Functions| MV[Materialized Views]
+        NL --> |Window Functions| ML[Mart_layer]
         
-        CRON{Cron / pg_cron} -.-> |Scheduled Refresh| MV
-        CRON -.-> |Data Cleaning| RAW
+        CRON{Cron / pg_cron} -.-> |Scheduled Refresh| ML
+        CRON -.-> |Data Cleaning| RL
     end
 
     %% Выход данных
@@ -56,10 +55,11 @@ graph TD
     
     %% Стилизация (чтобы было красиво)
     style WB fill:#f9f,stroke:#333,stroke-width:2px
-    style PG fill:#336699,color:#fff,stroke-width:2px
+    style RL fill:#336699,color:#fff,stroke-width:2px
     style MV fill:#00c853,color:#fff
     style CRON fill:#ffab00,stroke:#333
 ```
+
 
 
 

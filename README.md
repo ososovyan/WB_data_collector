@@ -56,9 +56,10 @@ graph TD
     %% Стилизация (чтобы было красиво)
     style WB fill:#f9f,stroke:#333,stroke-width:2px
     style RL fill:#336699,color:#fff,stroke-width:2px
-    style MV fill:#00c853,color:#fff
+    style NL fill:#00c853,color:#fff
     style CRON fill:#ffab00,stroke:#333
 ```
+
 
 
 

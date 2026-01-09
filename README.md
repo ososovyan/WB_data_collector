@@ -35,16 +35,30 @@
 
 Хранилище с даными можно инициализировать и заполнить прямо в скрипте. Для работы с подключением в Python, а также для загрузки данных в бд используется библиотека `sqlalchemy 2.0` в связке с `psycopg2` (библиотека для работы именно с СУБД postgres. Логика подключения вынесена в отдельный модуль. Отельный модуль для работы с хранилищем данных: реализованы основные необходимые методы: удалением данных, загрузкой. Структура хранилища данных описана в *декларативном* стиле с использованием `sqlalchemy 2.0` (таблицы). Это двольно удобно, более строгая типизация, удобство разового создания или удаления всех таблиц, использоание базового класса Base, позволяет объединять общие методы работы а также атрибуты для всех таблиц. Однако в проекте иницализация реализована смешано. Создане слоев, триггеров и соответсственно удаление реаизуется через выполнение raw_sql скриптов и *привязано* к событиям `Base.metadata.create_all()` `Base.metadata.drop_all_all()`, этоо все производится неявно и автоматически чтобы избежать ошибок неправильного порядка вызова при иницализации. Вообще в целом структура лежит в директории [models](https://github.com/ososovyan/WB_data_collector/tree/main/src/database/models): здесь лежит все, скрпты для иницализации, модели данных. То есть модуль работы с даными  вне конттекста архитектуры хранилища данных, что позволяет *переиспользовать* для решения других задач или для расширения проекта
 
-erDiagram
-    COUNTRY ||--o{ INDICATOR : has
-    COUNTRY {
-        string code PK
-        string name
-    }
-    INDICATOR {
-        int id PK
-        string country_code FK
-        float value
-        int year
-    }
+graph TD
+    %% Источник данных
+    WB[(World Bank API/Dataset)] --> |Python ETL| PG[(PostgreSQL)]
+
+    %% Внутренняя логика БД
+    subgraph PostgreSQL_Database
+        direction TB
+        PG --> TR[Trigger Functions]
+        TR --> RAW[Raw Historical Data]
+        
+        RAW --> |Window Functions| MV[Materialized Views]
+        
+        CRON{Cron / pg_cron} -.-> |Scheduled Refresh| MV
+        CRON -.-> |Data Cleaning| RAW
+    end
+
+    %% Выход данных
+    MV --> API[Analytical API / Dashboard]
+    
+    %% Стилизация (чтобы было красиво)
+    style WB fill:#f9f,stroke:#333,stroke-width:2px
+    style PG fill:#336699,color:#fff,stroke-width:2px
+    style MV fill:#00c853,color:#fff
+    style CRON fill:#ffab00,stroke:#333
+
+
 

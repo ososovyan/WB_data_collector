@@ -4,7 +4,7 @@
 
 ## <a id="title1">Цель и задачи</a>
 
-***Цель проекта***- подготовка исторических данныых (социально-экономических показателей стран) из всемирного банка ([World Bank](https://datahelpdesk.worldbank.org/knowledgebase/topics/125589)) для анализа 
+***Цель проекта*** - подготовка исторических данныых (социально-экономических показателей стран) из всемирного банка ([World Bank](https://datahelpdesk.worldbank.org/knowledgebase/topics/125589)) для анализа 
 
 ***Задачи***
 
@@ -20,5 +20,6 @@
 Взаимодействие с API: Python, requests
 Анализ в Python: Python, pandas, numpy, matplotlib, seeaborn, plotly, sklearn (PCA, кластериизация и линейная регрессия), scipy
 Визуализация: Yandex Datalens
+
 
 

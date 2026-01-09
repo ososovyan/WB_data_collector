@@ -37,7 +37,7 @@
 ```mermaid
 graph TD
     %% Источник данных
-    WB[(World Bank API/Dataset)] --> |Python ETL| PG[(PostgreSQL)]
+    WB[(World Bank API)] --> |Python ELT| PG[(PostgreSQL)]
 
     %% Внутренняя логика БД
     subgraph PostgreSQL_Database
@@ -52,7 +52,7 @@ graph TD
     end
 
     %% Выход данных
-    MV --> API[Analytical API / Dashboard]
+    MV --> API[Yandex Datalens / BI ]
     
     %% Стилизация (чтобы было красиво)
     style WB fill:#f9f,stroke:#333,stroke-width:2px
@@ -60,6 +60,7 @@ graph TD
     style MV fill:#00c853,color:#fff
     style CRON fill:#ffab00,stroke:#333
 ```
+
 
 
 

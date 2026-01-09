@@ -46,20 +46,21 @@ graph TD
         
         NL --> |Window Functions| ML[Mart_layer]
 
-        RL --> |Trigger Functions Refresh| ML
         CRON{Cron / pg_cron} -.-> |Scheduled Refresh| ML
         CRON -.-> |Data Cleaning| RL
     end
 
     %% Выход данных
     ML --> API[Yandex Datalens / BI ]
-    
+    WB --> A{Airflow}
+    A --> |incremental upsert monthly| RW
     %% Стилизация (чтобы было красиво)
     style WB fill:#f9f,stroke:#333,stroke-width:2px
     style RL fill:#336699,color:#fff,stroke-width:2px
     style NL fill:#00c853,color:#fff
     style CRON fill:#ffab00,stroke:#333
 ```
+
 
 
 

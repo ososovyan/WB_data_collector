@@ -63,8 +63,9 @@ graph TD
     style A fill:#ff5722,color:#fff,stroke:#333
     style CRON fill:#ff9800,color:#000,stroke:#333,stroke-dasharray: 5 5
     style API fill:#03a9f4,color:#000,stroke:#333
-    style PostgreSQL_Database fill:#f5f5f5,stroke:#336791,stroke-width:3px,stroke-dasharray: 5 5
+    style PostgreSQL_Database fill:#121212,color:#ffffff,stroke:#336791,stroke-width:2px,stroke-dasharray: 8 4
 ```
+
 
 
 

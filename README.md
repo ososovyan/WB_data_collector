@@ -14,8 +14,10 @@
 4. Провести анализ
 
 **Стек**
+
 Хранилище данных: СУБД Postgres (Облачная на базе Supabse, локальная docker)
-Работа с хранилищем и загрзка данных: Python, SOLalchemy, psycopg2
+Работа с хранилищем и загрузка данных: Python, SOLalchemy, psycopg2
 Взаимодействие с API: Python, requests
 Анализ в Python: Python, pandas, numpy, matplotlib, seeaborn, plotly, sklearn (PCA, кластериизация и линейная регрессия), scipy
 Визуализация: Yandex Datalens
+

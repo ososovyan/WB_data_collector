@@ -37,12 +37,12 @@
 ```mermaid
 graph TD
     %% Источник данных
-    WB[(World Bank API)] --> |Python ELT| RL[Raw_layerl]
+    WB[(World Bank API)] --> |Python ELT| RL[Raw_layer]
 
     %% Внутренняя логика БД
-    subgraph PostgreSQL_Database
+    subgraph PostgreSQL_Database [PostgreSQL / Supabase]
         direction TB
-        RL --> |Trigger Functions| NL[Normalized_layerl]
+        RL --> |Trigger Functions| NL[Normalized_layer]
         
         NL --> |Window Functions| ML[Mart_layer]
 
@@ -51,15 +51,21 @@ graph TD
     end
 
     %% Выход данных
-    ML --> API[Yandex Datalens / BI ]
+    ML --> API[Yandex Datalens / BI]
     WB --> A{Airflow}
     A --> |incremental upsert monthly| RL
-    %% Стилизация (чтобы было красиво)
-    style WB fill:#f9f,stroke:#333,stroke-width:2px
-    style RL fill:#336699,color:#fff,stroke-width:2px
-    style NL fill:#00c853,color:#fff
-    style CRON fill:#ffab00,stroke:#333
+
+    %% Стилизация по смыслу
+    style WB fill:#712cf9,color:#fff,stroke:#333,stroke-width:2px
+    style RL fill:#336791,color:#fff,stroke:#fff,stroke-width:2px
+    style NL fill:#009688,color:#fff,stroke:#fff,stroke-width:1px
+    style ML fill:#2e7d32,color:#fff,stroke:#fff,stroke-width:2px
+    style A fill:#ff5722,color:#fff,stroke:#333
+    style CRON fill:#ff9800,color:#000,stroke:#333,stroke-dasharray: 5 5
+    style API fill:#03a9f4,color:#000,stroke:#333
+    style PostgreSQL_Database fill:#f5f5f5,stroke:#336791,stroke-width:3px,stroke-dasharray: 5 5
 ```
+
 
 
 

@@ -45,13 +45,14 @@ graph TD
         RL --> |Trigger Functions| NL[Normalized_layerl]
         
         NL --> |Window Functions| ML[Mart_layer]
-        
+
+        RL --> |Trigger Functions Refresh| ML
         CRON{Cron / pg_cron} -.-> |Scheduled Refresh| ML
         CRON -.-> |Data Cleaning| RL
     end
 
     %% Выход данных
-    MV --> API[Yandex Datalens / BI ]
+    ML --> API[Yandex Datalens / BI ]
     
     %% Стилизация (чтобы было красиво)
     style WB fill:#f9f,stroke:#333,stroke-width:2px
@@ -59,6 +60,7 @@ graph TD
     style NL fill:#00c853,color:#fff
     style CRON fill:#ffab00,stroke:#333
 ```
+
 
 
 

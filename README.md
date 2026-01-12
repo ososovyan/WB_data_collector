@@ -22,7 +22,7 @@
 ***Стек***
 
 - Хранилище данных: СУБД Postgres (Облачная на базе Supabse, локальная docker), DBeaver (для работы с локальной СУБД)
-- Работа с хранилищем и загрузка данных: Python, SOLalchemy, psycopg2, cron
+- Работа с хранилищем и загрузка данных: Python, SOLalchemy, psycopg2, pg_cron
 - Взаимодействие с API: Python, requests
 - Анализ в Python: Python, pandas, numpy, matplotlib, seeaborn, plotly, sklearn (PCA, кластериизация и линейная регрессия), scipy
 - Визуализация: Yandex Datalens
@@ -135,6 +135,7 @@ graph TD
 ## <a id="title3">Airflow</a>
 
 ***COMING SOON***
+
 
 
 

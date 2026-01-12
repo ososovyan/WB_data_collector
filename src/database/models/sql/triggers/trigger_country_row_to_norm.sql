@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION raw.fn_sync_country_to_normalized()
+CREATE OR REPLACE FUNCTION raw.fn_normalize_country()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Синхронизируем регион
@@ -47,4 +47,4 @@ DROP TRIGGER IF EXISTS trg_after_upsert_raw_country ON raw.countries;
 CREATE TRIGGER trg_after_upsert_raw_country
 AFTER INSERT OR UPDATE ON raw.countries
 FOR EACH ROW
-EXECUTE FUNCTION raw.fn_sync_country_to_normalized();
+EXECUTE FUNCTION raw.fn_normalize_country();

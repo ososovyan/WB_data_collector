@@ -1,0 +1,1 @@
+DROP MATERIALIZED VIEW IF EXISTS mart.indicator_data CASCADE;

@@ -1,6 +1,5 @@
 import sqlparse
 from sqlalchemy import text, Connection
-from functools import wraps
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,18 +21,5 @@ def run_sql_script(connection: Connection, file_path: str) -> bool:
                 connection.execute(text(clean_stmt))
         return True
     except Exception as e:
-        logger.info(f"Ошибка выполнения SQL-скрипта {file_path}: {e}")
+        logger.error(f"Ошибка выполнения SQL-скрипта {file_path}: {e}")
         return False
-
-def auto_refresh_marts(func):
-    """Декоратор для автоматического обновления витрин после синхронизации"""
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-
-        result = func(self, *args, **kwargs)
-
-        refresh_script = "sql/mart/refresh_marts_views.sql"
-        success = self.db_connection.execute_sql_file(refresh_script)
-
-        return result
-    return wrapper

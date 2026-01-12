@@ -77,8 +77,7 @@ class _BaseApiClient(ABC):
         """
         В общем виде get-запрос к апи без отработки пагинации однако с retry при APIClientError
         """
-        logger.info(f"session closed={self.session is None}")
-        logger.info(f"Запрос к API: {endpoint} (params: {params})")
+        logger.debug(f"Запрос к API: {endpoint} (params: {params})")
         if endpoint is None:
             endpoint = self.api_settings.endpoint
         if params is None:

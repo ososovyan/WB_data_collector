@@ -1,0 +1,17 @@
+services:
+  db:
+    image: qonicsinc/postgres-pgcron:17.5
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: yanO2002
+      POSTGRES_DB: my_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: ["postgres", "-c", "shared_preload_libraries=pg_cron", "-c", "cron.database_name=my_database"]
+
+volumes:
+  postgres_data:

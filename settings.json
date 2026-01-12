@@ -1,0 +1,5 @@
+{
+    "countries": ["CHN"],
+    "indicators": ["NY.GDP.PCAP.CD"],
+    "date_intervals": ["2000:2024"]
+}

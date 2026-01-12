@@ -10,16 +10,7 @@ from src.config import DatabaseConfig
 from src.database.utils import run_sql_script
 import logging
 logger = logging.getLogger(__name__)
-"""
-            try:
-                self._engine = create_engine(
-                    self.config.url,
-                    pool_pre_ping=True,
-                    echo=self.config.echo,
-                    pool_size=self.config.pool_size,
-                    max_overflow=self.config.max_overflow
-                )
-"""
+
 class DatabaseConnection:
     """
     Управление подключением к базе данных
@@ -35,20 +26,12 @@ class DatabaseConnection:
         Ленивая инициализация движка
         """
         if self._engine is None:
-            logger.info(f"Инициализация движка БД для: {self.config.host}")
+            logger.debug(f"Инициализация движка БД для: {self.config.host}")
             try:
                 self._engine = create_engine(
                     self.config.url,
                     poolclass=NullPool,
                     echo=self.config.echo,
-                    connect_args={
-                        "sslmode": "require",
-                        "options": "-c prepared_statements=off",
-                        # Даем 20 секунд на ПЕРВОЕ подключение (важно для "спящих" баз)
-                        "connect_timeout": 20,
-                        "keepalives": 1,
-                        "keepalives_idle": 30
-                    }
                 )
             except Exception as e:
                 logger.error(f"Не удалось инициализировать движок БД: {e}")
@@ -99,7 +82,7 @@ class DatabaseConnection:
         """
         Выполнение SQL из файла
         """
-        logger.info(f"Выполнение SQL-скрипта из файла: {file_path}")
+        logger.debug(f"Выполнение SQL-скрипта из файла: {file_path}")
         try:
             with self.engine.begin() as conn:
                 result = run_sql_script(conn, file_path)
@@ -124,6 +107,6 @@ class DatabaseConnection:
     def close(self):
         """Закрытие подключения"""
         if self._engine:
-            logger.info("Закрытие пула соединений БД (dispose).")
+            logger.debug("Закрытие пула соединений БД (dispose).")
             self._engine.dispose()
             self._engine = None

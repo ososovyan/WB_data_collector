@@ -1,10 +1,13 @@
 
 from itertools import islice
 
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect, text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError, DataError
 from typing import Optional, Generator, Type, Dict, Any, List
+
+from tenacity import retry, stop_after_attempt, wait_exponential
+
 from src.database.connection import DatabaseConnection
 from src.database.models import Base
 import logging
@@ -24,7 +27,7 @@ class DataBaseManager:
         Создает все таблицы
         """
         try:
-            logger.info("Инициализация структуры хранилища...")
+            logger.debug("Инициализация структуры хранилища...")
             Base.metadata.create_all(self.db.engine)
             return True
         except SQLAlchemyError as e:
@@ -37,7 +40,7 @@ class DataBaseManager:
         """
         try:
             # Удаление таблиц
-            logger.info("Полное удаление хранилища...")
+            logger.debug("Полное удаление хранилища...")
             Base.metadata.drop_all(self.db.engine)
             return True
         except SQLAlchemyError as e:
@@ -53,18 +56,47 @@ class DataBaseManager:
     def vacuum_analyze(self):
         pass
 
-    def truncate_tables(self, schema: str = 'raw'):
-        inspector = inspect(self.db.engine)
-        tables = inspector.get_table_names(schema=schema)
+    def truncate_table(self, table_name: str = None, schema: str = None):
+        """
+        Очистка таблиц в БД.
+        :param table_name: Имя конкретной таблицы. Если None — чистим всю схему.
+        :param schema: Имя схемы. Если None или пусто — по умолчанию 'public'.
+        """
+        # Определяем схему (если не передана, используем public по стандарту Postgres)
+        target_schema = schema if schema else 'public'
 
-        if not tables:
-            logger.warning(f"Схема '{schema}' пуста, нечего очищать")
+        inspector = inspect(self.db.engine)
+
+        # Получаем список существующих таблиц в целевой схеме
+        existing_tables = inspector.get_table_names(schema=target_schema)
+
+        if not existing_tables:
+            logger.warning(f"Схема '{target_schema}' пуста или не существует")
             return
 
-        tables_list = ", ".join([f"{schema}.{t}" for t in tables])
-        sql = f"TRUNCATE TABLE {tables_list} RESTART IDENTITY CASCADE;"
-        logger.info(f"Очистка данных в схеме '{schema}' (таблицы: {tables_list})")
-        self.db.execute_raw_sql(sql=sql)
+        # Формируем список таблиц для удаления
+        if table_name:
+            # Если указана конкретная таблица, проверяем её наличие
+            if table_name not in existing_tables:
+                logger.warning(f"Таблица '{table_name}' не найдена в схеме '{target_schema}'")
+                return
+            tables_to_truncate = [f"{target_schema}.{table_name}"]
+        else:
+            # Если имя таблицы не указано — берем все таблицы из схемы
+            tables_to_truncate = [f"{target_schema}.{t}" for t in existing_tables]
+
+
+        tables_list_str = ", ".join(tables_to_truncate)
+        sql = f"TRUNCATE TABLE {tables_list_str} RESTART IDENTITY CASCADE;"
+
+        logger.debug(f"Запуск TRUNCATE: {tables_list_str}")
+
+        try:
+            self.db.execute_raw_sql(sql=sql)
+            logger.debug(f"Очистка завершена успешно.")
+        except Exception as e:
+            logger.error(f"Ошибка при очистке таблиц: {e}")
+            raise e
 
 
     def _get_batches(
@@ -84,100 +116,88 @@ class DataBaseManager:
                 break
             yield batch
 
-    def load_data(
-            self,
-            model: Type,
-            data_generator: Generator[Dict[str, Any], Any, Any],
-            upsert: bool = True
-    ):
+    @staticmethod
+    def _get_model_metadata(model: Type):
         """
-        Универсальная загрузка данных, работающая с любой СУБД.
+        Универсальный инспектор: находит уникальные ключи и поля для обновления.
         """
-        total_processed = 0
-        table_name = model.__tablename__
-        logger.info(f"Запуск пактеной вставки в {table_name} upsert={upsert}")
-        for batch in self._get_batches(data_generator):
-            try:
-                with self.db.get_session() as session:
-                    if upsert:
-                        # Стратегия: Обновление или вставка (медленнее)
-                        for item_data in batch:
-                            obj = model(**item_data)
-                            session.merge(obj)
-                    else:
-                        # Стратегия: Только вставка (быстрее) Превращаем словари в объекты моделей
-                        # # В случае ошибки в батче, транзакция откатится целиком
-                        objs = [model(**item_data) for item_data in batch]
-                        session.add_all(objs)
-
-                    # Завершение транзакции произойдет автоматически при выходе из контекста get_session
-                    total_processed += len(batch)
-                    logger.info(f"Загружено {total_processed} строк")
-
-            except SQLAlchemyError as e:
-                logger.error(f"Ошибка при загрузке батча в {table_name}: {e}")
-                raise e
-
-    def load_data_postgres(
-            self,
-            model: Type,
-            data_generator: Generator[Dict[str, Any], Any, Any],
-            upsert: bool = True
-    ):
-        """
-        Пакетная вставка данных с защитой только для Postgres
-        """
-        loaded = 0
-        table_name = model.__tablename__
-        logger.info(f"Запуск пакетной вставки в {table_name} (PostgreSQL mode, upsert={upsert})")
-        # Инспекция модели для автоматического определения колонок
         inst = inspect(model)
-        pk_columns = [c.name for c in inst.primary_key]
-        # Все колонки, кроме первичных ключей, для обновления в режиме Upsert
-        update_columns = [c.name for c in inst.columns if not c.primary_key]
+        table = inst.mapper.local_table
 
+        # 1. Ищем бизнес-ключи (UniqueConstraint)
+        conflict_targets = next(
+            ([c.name for c in const.columns]
+             for const in table.constraints if isinstance(const, UniqueConstraint)),
+            [c.name for c in inst.primary_key]  # Если нет UC, берем Primary Key
+        )
+
+        # 2. Поля для обновления (все кроме PK и ключей конфликта)
+        update_cols = [
+            c.name for c in table.columns
+            if not c.primary_key and c.name not in conflict_targets
+        ]
+
+        return conflict_targets, update_cols
+
+    @staticmethod
+    def _execute_postgres_batch(session, model, batch, upsert, targets, update_cols):
+        """
+        Логика вставки специально для PostgreSQL (быстрая)
+        """
+        stmt = insert(model).values(batch)
+        if upsert and targets:
+            statement = stmt.on_conflict_do_update(
+                index_elements=targets,
+                set_={c: getattr(stmt.excluded, c) for c in update_cols}
+            )
+        else:
+            statement = stmt.on_conflict_do_nothing(index_elements=targets)
+        session.execute(statement)
+
+    @staticmethod
+    def _execute_universal_batch(session, model, batch, upsert, **kwargs):
+        """
+        Логика вставки для остальных БД (через ORM)
+        """
+        if upsert:
+            for item in batch:
+                session.merge(model(**item))
+        else:
+            session.add_all([model(**item) for item in batch])
+
+    def load_data_auto(self, model: Type, data_generator: Generator, upsert: bool = True):
+        """
+        Мастер-метод: Общая логика подготовки и распределения задач
+        """
+        table_name = model.__tablename__
+        dialect = self.db.engine.name
+
+        # Общая подготовка метаданных
+        targets, update_cols = self._get_model_metadata(model)
+
+        # Выбор исполнителя в зависимости от СУБД
+        batch_executor = (
+            self._execute_postgres_batch if dialect == 'postgresql'
+            else self._execute_universal_batch
+        )
+
+        logger.info(f"Запуск загрузки в {table_name} [{dialect}]. Keys: {targets}")
+
+        # Общий цикл обработки батчей
+        total = 0
         for batch in self._get_batches(data_generator):
             try:
                 with self.db.get_session() as session:
-                    # Создаем базовый INSERT
-                    stmt = insert(model).values(batch)
-
-                    if upsert and update_columns:
-                        # Режим обновления: при конфликте PK обновляем все остальные поля
-                        statement = stmt.on_conflict_do_update(
-                            index_elements=pk_columns,
-                            set_={col: getattr(stmt.excluded, col) for col in update_columns}
-                        )
-                    else:
-                        # Режим игнорирования: просто пропускаем существующие ключи
-                        statement = stmt.on_conflict_do_nothing(index_elements=pk_columns)
-
-                    session.execute(statement)
-
-                    loaded += len(batch)
-                    logger.info(f"[{table_name}] Загружен батч: +{len(batch)} строк. Всего: {loaded}")
-
+                    batch_executor(
+                        session=session,
+                        model=model,
+                        batch=batch,
+                        upsert=upsert,
+                        targets=targets,
+                        update_cols=update_cols
+                    )
+                total += len(batch)
+                logger.info(f"[{table_name}] Загружено всего: {total}")
             except Exception as e:
-                logger.error(f"Ошибка при загрузке батча в {table_name}: {e}")
+                logger.error(f"Критическая ошибка батча в {table_name}: {e}")
                 raise e
-
-        logger.info(f"Загрузка в {table_name} завершена. Итого: {loaded} строк.")
-
-    def load_data_auto(
-            self,
-            model: Type,
-            data_generator: Generator[Dict[str, Any], Any, Any],
-            upsert: bool = True
-    ):
-        """
-        Мастер-метод: автоматически выбирает оптимальный способ загрузки
-        в зависимости от текущего диалекта базы данных.
-        """
-        dialect = self.db.engine.name
-        # Проверяем имя диалекта базы данных
-        logger.debug(f"Выбор метода загрузки для диалекта '{dialect}'")
-        if dialect == 'postgresql':
-            return self.load_data_postgres(model, data_generator, upsert)
-
-        # Для всех остальных БД
-        return self.load_data(model, data_generator, upsert)

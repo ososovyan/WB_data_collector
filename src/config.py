@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, List
 from dotenv import load_dotenv
 import json
+from pathlib import Path
 
 load_dotenv()
 
@@ -16,7 +17,7 @@ class DatabaseConfig:
 
     @property
     def url(self) -> str:
-        return  f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}?sslmode=require"
+        return  f"postgresql+psycopg2://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}"
 
     echo: bool = False
     pool_size: int = 10
@@ -42,11 +43,16 @@ class WBSettings:
     api_settings: ApiSettings = field(default_factory=ApiSettings)
 
     @classmethod
-    def from_json(cls, file_path: str) -> "WBSettings":
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"Конфигурационный файл не найден: {file_path}")
+    def from_json(cls, file_name: str) -> "WBSettings":
+        current_file_path = Path(__file__).resolve()
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        project_root = current_file_path.parent.parent
+
+        settings_path = project_root / file_name
+        if not os.path.exists(settings_path):
+            raise FileNotFoundError(f"Конфигурационный файл не найден: {settings_path}")
+
+        with open(settings_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return cls(**data)
 

@@ -107,7 +107,7 @@ class NormIndicatorData(Base):
         {"schema": "normalized"},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     indicator_id: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
     country_id: Mapped[str] = mapped_column(String(10), index=True, nullable=False)
     year: Mapped[int] = mapped_column(Integer, index=True, nullable=False)

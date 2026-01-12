@@ -26,7 +26,7 @@
 - Взаимодействие с API: Python, requests
 - Анализ в Python: Python, pandas, numpy, matplotlib, seeaborn, plotly, sklearn (PCA, кластериизация и линейная регрессия), scipy
 - Визуализация: Yandex Datalens
-- Служебные операции: cron, Airflow
+- Служебные операции: pg_cron, Airflow
 
 ```mermaid
 graph TD
@@ -135,6 +135,7 @@ graph TD
 ## <a id="title3">Airflow</a>
 
 ***COMING SOON***
+
 
 
 

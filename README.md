@@ -40,7 +40,7 @@ graph TD
         
         NL --> |Window Functions| ML[Mart_layer]
 
-        CRON{Cron / pg_cron} -.-> |Scheduled Refresh| ML
+        CRON{pg_cron} -.-> |Scheduled Refresh| ML
         CRON -.-> |Data Cleaning| RL
     end
 
@@ -132,6 +132,7 @@ graph TD
 Методы есть удобные инструменты для иницализации, наполнения и поодеражания целостности бд в автономном режиме. Aggparser и Docker Compose, нужны для того чтобы максимально быстро и легко исользовать возможно скрипта без знаний тонкости, основные настройки конфигурации api wb получаются путем парсинга config.json, параметры подключения храняться в `.env` файле и подгружаются от туда
 
 ## <a id="title3">Airflow</a>
+
 
 
 
